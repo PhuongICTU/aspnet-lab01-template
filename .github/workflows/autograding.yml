@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   autograding:
+    if: ${{ !endsWith(github.event.repository.name, '-template') }}
     name: Check ASP.NET Core Lab 01
     runs-on: ubuntu-latest
     timeout-minutes: 10
