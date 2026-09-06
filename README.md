@@ -1,0 +1,1 @@
+# aspnet-lab01-template
