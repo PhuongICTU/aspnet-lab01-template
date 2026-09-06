@@ -1,0 +1,223 @@
+name: Autograding Lab 01
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lab01-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  autograding:
+    name: Check ASP.NET Core Lab 01
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Display .NET information
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+
+      - name: Check project structure
+        shell: bash
+        run: |
+          test -f "Lab01.Web/Lab01.Web.csproj" || {
+            echo "::error::Không tìm thấy Lab01.Web/Lab01.Web.csproj"
+            exit 1
+          }
+
+          test -f "Lab01.Web/Program.cs" || {
+            echo "::error::Không tìm thấy Lab01.Web/Program.cs"
+            exit 1
+          }
+
+          test -f "Lab01.Web/Views/Home/Index.cshtml" || {
+            echo "::error::Không tìm thấy Views/Home/Index.cshtml"
+            exit 1
+          }
+
+          echo "Cấu trúc dự án hợp lệ."
+
+      - name: Check target framework
+        shell: bash
+        run: |
+          grep -Eq \
+            '<TargetFramework>net8\.0</TargetFramework>' \
+            "Lab01.Web/Lab01.Web.csproj" || {
+              echo "::error::Dự án phải sử dụng TargetFramework net8.0"
+              exit 1
+            }
+
+          echo "Dự án sử dụng đúng .NET 8."
+
+      - name: Restore dependencies
+        run: |
+          dotnet restore "Lab01.Web/Lab01.Web.csproj"
+
+      - name: Build project
+        run: |
+          dotnet build "Lab01.Web/Lab01.Web.csproj" \
+            --configuration Release \
+            --no-restore
+
+      - name: Check required home-page content
+        shell: bash
+        run: |
+          FILE="Lab01.Web/Views/Home/Index.cshtml"
+
+          check_text() {
+            local text="$1"
+
+            if ! grep -Fq "$text" "$FILE"; then
+              echo "::error::Trang chủ thiếu nội dung: $text"
+              exit 1
+            fi
+          }
+
+          check_text "Ứng dụng ASP.NET Core đầu tiên"
+          check_text "Công nghệ phát triển ứng dụng"
+          check_text "Họ và tên"
+          check_text "Mã sinh viên"
+          check_text "Lớp"
+          check_text "Kestrel"
+
+          echo "Trang chủ có đầy đủ nội dung bắt buộc."
+
+      - name: Check personalized student information
+        shell: bash
+        run: |
+          FILE="Lab01.Web/Views/Home/Index.cshtml"
+
+          if grep -Fq "Nguyễn Văn A" "$FILE"; then
+            echo "::error::Sinh viên chưa thay họ tên mẫu."
+            exit 1
+          fi
+
+          if grep -Fq "DTC123456" "$FILE"; then
+            echo "::error::Sinh viên chưa thay mã sinh viên mẫu."
+            exit 1
+          fi
+
+          if grep -Fq "CNTT KXX" "$FILE"; then
+            echo "::error::Sinh viên chưa thay lớp mẫu."
+            exit 1
+          fi
+
+          echo "Thông tin mẫu đã được thay đổi."
+
+      - name: Check health endpoint source code
+        shell: bash
+        run: |
+          FILE="Lab01.Web/Program.cs"
+
+          grep -Eq \
+            'MapGet[[:space:]]*\([[:space:]]*"/health"' \
+            "$FILE" || {
+              echo "::error::Không tìm thấy endpoint /health."
+              exit 1
+            }
+
+          grep -Fq "LAB01_OK" "$FILE" || {
+            echo "::error::Endpoint phải trả về LAB01_OK."
+            exit 1
+          }
+
+          echo "Đã tìm thấy endpoint /health."
+
+      - name: Run and test application
+        shell: bash
+        run: |
+          set -e
+
+          dotnet run \
+            --project "Lab01.Web/Lab01.Web.csproj" \
+            --configuration Release \
+            --no-build \
+            --urls "http://127.0.0.1:5050" \
+            > app.log 2>&1 &
+
+          APP_PID=$!
+
+          cleanup() {
+            kill "$APP_PID" 2>/dev/null || true
+          }
+
+          trap cleanup EXIT
+
+          APP_READY=false
+
+          for i in {1..30}; do
+            if curl --fail --silent \
+              "http://127.0.0.1:5050/health" > /dev/null; then
+              APP_READY=true
+              break
+            fi
+
+            if ! kill -0 "$APP_PID" 2>/dev/null; then
+              echo "::error::Ứng dụng đã dừng trước khi khởi động xong."
+              cat app.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          if [ "$APP_READY" != "true" ]; then
+            echo "::error::Ứng dụng không khởi động trong 30 giây."
+            cat app.log
+            exit 1
+          fi
+
+          HEALTH_RESULT=$(curl --fail --silent \
+            "http://127.0.0.1:5050/health")
+
+          if [ "$HEALTH_RESULT" != "LAB01_OK" ]; then
+            echo "::error::Endpoint /health không trả về LAB01_OK."
+            exit 1
+          fi
+
+          HOME_PAGE=$(curl --fail --silent \
+            "http://127.0.0.1:5050/")
+
+          if ! printf '%s' "$HOME_PAGE" \
+            | grep -Fq "ASP.NET Core"; then
+            echo "::error::Trang chủ không hiển thị nội dung ASP.NET Core."
+            exit 1
+          fi
+
+          echo "Ứng dụng khởi động và hoạt động đúng."
+
+      - name: Autograding summary
+        if: success()
+        run: |
+          {
+            echo "## Kết quả chấm tự động"
+            echo ""
+            echo "✅ Đúng cấu trúc dự án"
+            echo "✅ Sử dụng .NET 8"
+            echo "✅ Biên dịch thành công"
+            echo "✅ Trang chủ có nội dung bắt buộc"
+            echo "✅ Đã cá nhân hóa thông tin"
+            echo "✅ Endpoint /health hoạt động"
+            echo ""
+            echo "**Điểm tự động: 9/9**"
+            echo ""
+            echo "Điểm lịch sử commit do giảng viên đánh giá."
+          } >> "$GITHUB_STEP_SUMMARY"
