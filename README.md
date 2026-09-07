@@ -1,19 +1,19 @@
-# BÀI THỰC HÀNH 01  
+# BÀI THỰC HÀNH 01
 ## Làm quen với ASP.NET Core và GitHub
 
 ## 1. Mục tiêu
 
 Sau khi hoàn thành bài thực hành, sinh viên có thể:
 
-- Kiểm tra môi trường phát triển .NET.
+- Kiểm tra môi trường và phiên bản .NET SDK.
 - Tạo ứng dụng ASP.NET Core MVC.
-- Sử dụng Visual Studio hoặc Visual Studio Code để phát triển ứng dụng.
-- Nhận diện một số thành phần cơ bản của dự án ASP.NET Core MVC.
-- Chỉnh sửa giao diện trang chủ.
+- Sử dụng Visual Studio hoặc Visual Studio Code.
+- Nhận diện cấu trúc cơ bản của dự án ASP.NET Core MVC.
+- Chỉnh sửa Razor View có sẵn.
 - Tạo một endpoint đơn giản.
 - Biên dịch và chạy ứng dụng bằng Kestrel.
 - Commit và push mã nguồn lên GitHub.
-- Xem kết quả chấm tự động bằng GitHub Actions.
+- Kiểm tra kết quả bằng GitHub Actions.
 
 ## 2. Công cụ được phép sử dụng
 
@@ -23,12 +23,32 @@ Sinh viên được sử dụng một trong các môi trường sau:
 - Visual Studio 2026;
 - Visual Studio Code.
 
-Yêu cầu chung:
+Ứng dụng được phép sử dụng một trong các phiên bản:
 
-- Cài đặt .NET 8 SDK.
-- Dự án phải sử dụng framework `net8.0, .net10.0, .net 9.0`.
-- Tên dự án phải là `Lab01.Web`.
-- Không thay đổi tên hoặc vị trí các tệp do đề bài quy định.
+```text
+.NET 8.0
+.NET 9.0
+.NET 10.0
+```
+
+Target Framework tương ứng:
+
+| Phiên bản | Target Framework |
+|---|---|
+| .NET 8 | `net8.0` |
+| .NET 9 | `net9.0` |
+| .NET 10 | `net10.0` |
+
+Sinh viên chỉ chọn một phiên bản phù hợp với SDK đã cài trên máy.
+
+Các yêu cầu chung:
+
+- Tên dự án bắt buộc là `Lab01.Web`.
+- Dự án phải sử dụng `net8.0`, `net9.0` hoặc `net10.0`.
+- Không đổi tên hoặc vị trí các tệp được quy định trong đề bài.
+- Không sửa hoặc xóa workflow chấm tự động.
+
+## 3. Chuẩn bị môi trường
 
 ### Visual Studio
 
@@ -38,6 +58,8 @@ Nếu sử dụng Visual Studio, cần cài workload:
 ASP.NET and web development
 ```
 
+Sinh viên chỉ chọn phiên bản .NET xuất hiện và được hỗ trợ trong Visual Studio đang sử dụng.
+
 ### Visual Studio Code
 
 Nếu sử dụng Visual Studio Code, nên cài:
@@ -46,9 +68,9 @@ Nếu sử dụng Visual Studio Code, nên cài:
 - C#;
 - .NET Install Tool.
 
-## 3. Kiểm tra môi trường
+## 4. Kiểm tra .NET SDK
 
-Mở Terminal, Command Prompt hoặc PowerShell và chạy:
+Mở Terminal, Command Prompt hoặc PowerShell:
 
 ```bash
 dotnet --version
@@ -57,15 +79,25 @@ dotnet --list-sdks
 git --version
 ```
 
-Máy phải có .NET 8 SDK, ví dụ:
+Ví dụ máy có thể hiển thị:
 
 ```text
 8.0.xxx
+9.0.xxx
+10.0.xxx
 ```
 
-## 4. Nhận repository bài tập
+Sinh viên phải chọn Target Framework tương ứng với SDK đã được cài đặt.
 
-Mở repository được giảng viên cung cấp và chọn:
+## 5. Nhận repository bài tập
+
+Mở đường dẫn Assignment do giảng viên cung cấp và chọn:
+
+```text
+Accept assignment
+```
+
+Sau khi repository được tạo, chọn:
 
 ```text
 Code → HTTPS → Copy URL
@@ -80,23 +112,33 @@ cd <repository-name>
 
 Không sử dụng **Download ZIP**, vì bài làm cần có lịch sử commit.
 
----
-
 # PHẦN A. TẠO DỰ ÁN
 
-Sinh viên chọn một trong hai cách dưới đây.
+Sinh viên chọn một trong hai cách sau.
 
-## Cách 1. Tạo bằng .NET CLI
+## Cách 1. Sử dụng .NET CLI
 
-Cách này phù hợp với Visual Studio Code và cũng có thể sử dụng trong Terminal của Visual Studio.
-
-Tại thư mục gốc của repository, chạy:
+### Lựa chọn .NET 8
 
 ```bash
 dotnet new mvc -n Lab01.Web --framework net8.0 --no-https
 ```
 
-Biên dịch dự án:
+### Lựa chọn .NET 9
+
+```bash
+dotnet new mvc -n Lab01.Web --framework net9.0 --no-https
+```
+
+### Lựa chọn .NET 10
+
+```bash
+dotnet new mvc -n Lab01.Web --framework net10.0 --no-https
+```
+
+Chỉ chạy một trong ba lệnh trên.
+
+Biên dịch:
 
 ```bash
 dotnet build Lab01.Web/Lab01.Web.csproj
@@ -108,32 +150,36 @@ Chạy ứng dụng:
 dotnet run --project Lab01.Web/Lab01.Web.csproj
 ```
 
-## Cách 2. Tạo bằng Visual Studio 2022 hoặc 2026
-
-Thực hiện các bước sau:
+## Cách 2. Sử dụng Visual Studio
 
 1. Mở Visual Studio.
 2. Chọn **Create a new project**.
-3. Chọn mẫu:
+3. Chọn:
 
 ```text
 ASP.NET Core Web App (Model-View-Controller)
 ```
 
-4. Nhập thông tin:
+4. Khai báo:
 
 ```text
 Project name: Lab01.Web
 Solution name: Lab01.Web
-Location: thư mục gốc của repository
+Location: thư mục repository đã clone
 ```
 
 5. Chọn **Place solution and project in the same directory**.
-6. Chọn **Next**.
+6. Chọn một framework được phép:
+
+```text
+.NET 8.0
+.NET 9.0
+.NET 10.0
+```
+
 7. Cấu hình:
 
 ```text
-Framework: .NET 8.0
 Authentication type: None
 Configure for HTTPS: bỏ chọn
 Enable Docker: bỏ chọn
@@ -141,13 +187,11 @@ Enable Docker: bỏ chọn
 
 8. Nhấn **Create**.
 
-Sau khi tạo xong, phải bảo đảm có đường dẫn:
+Sau khi tạo, phải có file:
 
 ```text
 Lab01.Web/Lab01.Web.csproj
 ```
-
-Nếu `Lab01.Web.csproj` không nằm đúng đường dẫn trên, bài sẽ không được hệ thống nhận diện.
 
 ## Cấu trúc bắt buộc
 
@@ -169,17 +213,15 @@ repository/
 └── README.md
 ```
 
----
-
 # PHẦN B. CÁ NHÂN HÓA TRANG CHỦ
 
-Mở tệp:
+Mở:
 
 ```text
 Lab01.Web/Views/Home/Index.cshtml
 ```
 
-Thay nội dung bằng mẫu dưới đây:
+Thay nội dung bằng:
 
 ```cshtml
 @{
@@ -205,7 +247,7 @@ Thay nội dung bằng mẫu dưới đây:
         <p><strong>Họ và tên:</strong> Nguyễn Văn A</p>
         <p><strong>Mã sinh viên:</strong> DTC123456</p>
         <p><strong>Lớp:</strong> CNTT KXX</p>
-        <p><strong>Phiên bản:</strong> .NET 8</p>
+        <p><strong>Phiên bản .NET:</strong> .NET 8/9/10</p>
     </section>
 
     <section class="mt-4">
@@ -226,11 +268,12 @@ Sinh viên phải thay:
 Nguyễn Văn A
 DTC123456
 CNTT KXX
+.NET 8/9/10
 ```
 
-bằng thông tin thật của mình.
+bằng thông tin thực tế.
 
-Không được xóa các cụm từ bắt buộc:
+Không được xóa các cụm từ:
 
 ```text
 Ứng dụng ASP.NET Core đầu tiên
@@ -241,23 +284,21 @@ Lớp
 Kestrel
 ```
 
----
-
 # PHẦN C. TẠO ENDPOINT KIỂM TRA
 
-Mở tệp:
+Mở:
 
 ```text
 Lab01.Web/Program.cs
 ```
 
-Thêm đoạn mã sau vào trước `app.Run();`:
+Thêm trước `app.Run();`:
 
 ```csharp
 app.MapGet("/health", () => "LAB01_OK");
 ```
 
-Phần cuối của `Program.cs` cần có dạng:
+Phần cuối của `Program.cs`:
 
 ```csharp
 app.MapControllerRoute(
@@ -275,11 +316,9 @@ Không thay đổi chuỗi:
 LAB01_OK
 ```
 
----
-
 # PHẦN D. CHẠY VÀ KIỂM TRA
 
-## Sử dụng Visual Studio
+## Visual Studio
 
 Nhấn:
 
@@ -287,27 +326,11 @@ Nhấn:
 Ctrl + F5
 ```
 
-hoặc chọn:
-
-```text
-Debug → Start Without Debugging
-```
-
-## Sử dụng Visual Studio Code
-
-Mở Terminal tại thư mục repository:
+## Visual Studio Code hoặc Terminal
 
 ```bash
 dotnet run --project Lab01.Web/Lab01.Web.csproj
 ```
-
-Ứng dụng sẽ hiển thị một địa chỉ tương tự:
-
-```text
-http://localhost:5000
-```
-
-Số cổng có thể khác nhau trên từng máy.
 
 Kiểm tra trang chủ:
 
@@ -327,19 +350,15 @@ Kết quả bắt buộc:
 LAB01_OK
 ```
 
-Dừng ứng dụng bằng tổ hợp phím:
+Dừng ứng dụng:
 
 ```text
 Ctrl + C
 ```
 
----
-
 # PHẦN E. COMMIT VÀ PUSH
 
-Sinh viên phải có tối thiểu bốn commit.
-
-## Commit 1. Tạo dự án
+Sinh viên phải có ít nhất bốn commit phát triển, không tính các commit được Classroom tạo tự động.
 
 ```bash
 git add .
@@ -347,15 +366,11 @@ git commit -m "Create ASP.NET Core MVC project"
 git push
 ```
 
-## Commit 2. Hoàn thiện trang chủ
-
 ```bash
 git add .
 git commit -m "Customize student home page"
 git push
 ```
-
-## Commit 3. Tạo endpoint
 
 ```bash
 git add .
@@ -363,15 +378,13 @@ git commit -m "Add health check endpoint"
 git push
 ```
 
-## Commit 4. Hoàn thiện bài
-
 ```bash
 git add .
 git commit -m "Complete Lab 01"
 git push
 ```
 
-Không sử dụng những commit message không rõ nghĩa như:
+Không sử dụng commit message thiếu ý nghĩa như:
 
 ```text
 update
@@ -381,53 +394,40 @@ abc
 nop bai
 ```
 
----
-
-# PHẦN F. XEM KẾT QUẢ CHẤM TỰ ĐỘNG
+# PHẦN F. KIỂM TRA KẾT QUẢ
 
 Sau khi push:
 
 1. Mở repository trên GitHub.
 2. Chọn tab **Actions**.
-3. Chọn workflow **Autograding Lab 01**.
+3. Chọn **Autograding Lab 01**.
 4. Mở lần chạy mới nhất.
-5. Kiểm tra các bước chấm.
+5. Kiểm tra từng bước.
 
-Ký hiệu:
-
-- Dấu tích xanh: kiểm tra thành công.
-- Dấu X đỏ: có yêu cầu chưa đạt.
+- Dấu tích xanh: bài kiểm tra thành công.
+- Dấu X đỏ: bài chưa đáp ứng một hoặc nhiều yêu cầu.
 - Dấu tròn vàng: hệ thống đang kiểm tra.
 
-Nếu bài chưa đạt:
-
-1. Mở bước bị lỗi.
-2. Đọc thông báo.
-3. Sửa mã nguồn.
-4. Chạy lại trên máy.
-5. Commit và push lại.
-
----
+Nếu bị lỗi, sinh viên phải sửa bài, commit và push lại.
 
 # PHẦN G. TIÊU CHÍ ĐÁNH GIÁ
 
 | Nội dung | Điểm |
 |---|---:|
 | Đúng tên và cấu trúc dự án | 1,0 |
-| Dự án sử dụng `.NET 8` | 1,0 |
+| Sử dụng `net8.0`, `net9.0` hoặc `net10.0` | 1,0 |
 | Dự án biên dịch thành công | 2,0 |
-| Trang chủ có đủ nội dung bắt buộc | 2,0 |
-| Đã thay thông tin mẫu bằng thông tin thật | 1,0 |
-| Endpoint `/health` hoạt động đúng | 2,0 |
-| Có tối thiểu bốn commit hợp lệ | 1,0 |
+| Trang chủ có đầy đủ nội dung | 2,0 |
+| Đã thay thông tin mẫu | 1,0 |
+| Endpoint `/health` hoạt động | 2,0 |
+| Có ít nhất bốn commit hợp lệ | 1,0 |
 | **Tổng cộng** | **10,0** |
-
-Hệ thống tự động kiểm tra 9 điểm đầu tiên. Giảng viên kiểm tra lịch sử commit để chấm 1 điểm còn lại.
 
 ## Lưu ý
 
-- Không đổi tên dự án `Lab01.Web`.
-- Không đổi framework khỏi `.NET 8`.
-- Không sửa hoặc xóa workflow chấm tự động.
+- Không đổi tên `Lab01.Web`.
+- Không sử dụng phiên bản thấp hơn .NET 8.
+- Không sử dụng phiên bản cao hơn .NET 10.
+- Không sửa hoặc xóa `.github/workflows/autograding.yml`.
 - Không đưa các thư mục `bin`, `obj` và `.vs` lên GitHub.
-- Sinh viên chịu trách nhiệm kiểm tra trạng thái Actions trước thời hạn nộp bài.
+- Phải kiểm tra trạng thái GitHub Actions trước hạn nộp bài.
