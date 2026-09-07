@@ -26,7 +26,7 @@ Sinh viên được sử dụng một trong các môi trường sau:
 Yêu cầu chung:
 
 - Cài đặt .NET 8 SDK.
-- Dự án phải sử dụng framework `net8.0`.
+- Dự án phải sử dụng framework `net8.0, .net10.0, .net 9.0`.
 - Tên dự án phải là `Lab01.Web`.
 - Không thay đổi tên hoặc vị trí các tệp do đề bài quy định.
 
