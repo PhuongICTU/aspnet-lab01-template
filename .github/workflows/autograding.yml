@@ -17,141 +17,201 @@ concurrency:
 
 jobs:
   autograding:
+    # Không chấm repository mẫu.
+    # Workflow chỉ chạy đầy đủ trong repository bài làm của sinh viên.
     if: ${{ !endsWith(github.event.repository.name, '-template') }}
+
     name: Check ASP.NET Core Lab 01
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
+      # ------------------------------------------------------------
+      # 1. Lấy mã nguồn
+      # ------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install .NET 8 SDK
+      # ------------------------------------------------------------
+      # 2. Cài đặt các phiên bản .NET được phép
+      # ------------------------------------------------------------
+      - name: Install supported .NET SDKs
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Display .NET information
+        shell: bash
         run: |
+          echo "Default .NET SDK:"
           dotnet --version
+
+          echo "Installed .NET SDKs:"
           dotnet --list-sdks
 
+      # ------------------------------------------------------------
+      # 3. Kiểm tra tên và cấu trúc dự án - 1 điểm
+      # ------------------------------------------------------------
       - name: Check project structure
         shell: bash
         run: |
-          test -f "Lab01.Web/Lab01.Web.csproj" || {
-            echo "::error::Không tìm thấy Lab01.Web/Lab01.Web.csproj"
-            exit 1
-          }
+          PROJECT_FILE="Lab01.Web/Lab01.Web.csproj"
+          PROGRAM_FILE="Lab01.Web/Program.cs"
+          INDEX_FILE="Lab01.Web/Views/Home/Index.cshtml"
 
-          test -f "Lab01.Web/Program.cs" || {
-            echo "::error::Không tìm thấy Lab01.Web/Program.cs"
+          if [ ! -f "$PROJECT_FILE" ]; then
+            echo "::error::Không tìm thấy $PROJECT_FILE"
+            echo "::error::Tên dự án bắt buộc phải là Lab01.Web."
             exit 1
-          }
+          fi
 
-          test -f "Lab01.Web/Views/Home/Index.cshtml" || {
-            echo "::error::Không tìm thấy Views/Home/Index.cshtml"
+          if [ ! -f "$PROGRAM_FILE" ]; then
+            echo "::error::Không tìm thấy $PROGRAM_FILE"
             exit 1
-          }
+          fi
+
+          if [ ! -f "$INDEX_FILE" ]; then
+            echo "::error::Không tìm thấy $INDEX_FILE"
+            exit 1
+          fi
 
           echo "Cấu trúc dự án hợp lệ."
 
+      # ------------------------------------------------------------
+      # 4. Kiểm tra Target Framework - 1 điểm
+      # ------------------------------------------------------------
       - name: Check target framework
         shell: bash
         run: |
-          grep -Eq \
-            '<TargetFramework>net8\.0</TargetFramework>' \
-            "Lab01.Web/Lab01.Web.csproj" || {
-              echo "::error::Dự án phải sử dụng TargetFramework net8.0"
-              exit 1
-            }
+          PROJECT_FILE="Lab01.Web/Lab01.Web.csproj"
 
-          echo "Dự án sử dụng đúng .NET 8."
+          if ! grep -Eq \
+            '<TargetFramework>[[:space:]]*net(8|9|10)\.0[[:space:]]*</TargetFramework>' \
+            "$PROJECT_FILE"; then
+            echo "::error::Target Framework không hợp lệ."
+            echo "::error::Dự án phải sử dụng net8.0, net9.0 hoặc net10.0."
+            exit 1
+          fi
 
+          TARGET_FRAMEWORK=$(grep -Eo \
+            'net(8|9|10)\.0' \
+            "$PROJECT_FILE" | head -n 1)
+
+          echo "Target Framework hợp lệ: $TARGET_FRAMEWORK"
+
+      # ------------------------------------------------------------
+      # 5. Khôi phục thư viện
+      # ------------------------------------------------------------
       - name: Restore dependencies
         run: |
           dotnet restore "Lab01.Web/Lab01.Web.csproj"
 
+      # ------------------------------------------------------------
+      # 6. Biên dịch dự án - 2 điểm
+      # ------------------------------------------------------------
       - name: Build project
         run: |
           dotnet build "Lab01.Web/Lab01.Web.csproj" \
             --configuration Release \
             --no-restore
 
-      - name: Check required home-page content
+      # ------------------------------------------------------------
+      # 7. Kiểm tra nội dung trang chủ - 2 điểm
+      # ------------------------------------------------------------
+      - name: Check required home page content
         shell: bash
         run: |
-          FILE="Lab01.Web/Views/Home/Index.cshtml"
+          INDEX_FILE="Lab01.Web/Views/Home/Index.cshtml"
 
-          check_text() {
-            local text="$1"
+          check_required_text() {
+            local required_text="$1"
 
-            if ! grep -Fq "$text" "$FILE"; then
-              echo "::error::Trang chủ thiếu nội dung: $text"
+            if ! grep -Fq "$required_text" "$INDEX_FILE"; then
+              echo "::error::Trang chủ thiếu nội dung: $required_text"
               exit 1
             fi
           }
 
-          check_text "Ứng dụng ASP.NET Core đầu tiên"
-          check_text "Công nghệ phát triển ứng dụng"
-          check_text "Họ và tên"
-          check_text "Mã sinh viên"
-          check_text "Lớp"
-          check_text "Kestrel"
+          check_required_text "Ứng dụng ASP.NET Core đầu tiên"
+          check_required_text "Công nghệ phát triển ứng dụng"
+          check_required_text "Họ và tên"
+          check_required_text "Mã sinh viên"
+          check_required_text "Lớp"
+          check_required_text "Kestrel"
 
           echo "Trang chủ có đầy đủ nội dung bắt buộc."
 
+      # ------------------------------------------------------------
+      # 8. Kiểm tra cá nhân hóa thông tin - 1 điểm
+      # ------------------------------------------------------------
       - name: Check personalized student information
         shell: bash
         run: |
-          FILE="Lab01.Web/Views/Home/Index.cshtml"
+          INDEX_FILE="Lab01.Web/Views/Home/Index.cshtml"
 
-          if grep -Fq "Nguyễn Văn A" "$FILE"; then
-            echo "::error::Sinh viên chưa thay họ tên mẫu."
+          if grep -Fq "Nguyễn Văn A" "$INDEX_FILE"; then
+            echo "::error::Sinh viên chưa thay họ tên mẫu Nguyễn Văn A."
             exit 1
           fi
 
-          if grep -Fq "DTC123456" "$FILE"; then
-            echo "::error::Sinh viên chưa thay mã sinh viên mẫu."
+          if grep -Fq "DTC123456" "$INDEX_FILE"; then
+            echo "::error::Sinh viên chưa thay mã sinh viên mẫu DTC123456."
             exit 1
           fi
 
-          if grep -Fq "CNTT KXX" "$FILE"; then
-            echo "::error::Sinh viên chưa thay lớp mẫu."
+          if grep -Fq "CNTT KXX" "$INDEX_FILE"; then
+            echo "::error::Sinh viên chưa thay tên lớp mẫu CNTT KXX."
             exit 1
           fi
 
-          echo "Thông tin mẫu đã được thay đổi."
+          if grep -Fq ".NET 8/9/10" "$INDEX_FILE"; then
+            echo "::error::Sinh viên chưa ghi phiên bản .NET thực tế."
+            exit 1
+          fi
 
+          echo "Thông tin mẫu đã được cá nhân hóa."
+
+      # ------------------------------------------------------------
+      # 9. Kiểm tra mã nguồn endpoint /health
+      # ------------------------------------------------------------
       - name: Check health endpoint source code
         shell: bash
         run: |
-          FILE="Lab01.Web/Program.cs"
+          PROGRAM_FILE="Lab01.Web/Program.cs"
 
-          grep -Eq \
+          if ! grep -Eq \
             'MapGet[[:space:]]*\([[:space:]]*"/health"' \
-            "$FILE" || {
-              echo "::error::Không tìm thấy endpoint /health."
-              exit 1
-            }
-
-          grep -Fq "LAB01_OK" "$FILE" || {
-            echo "::error::Endpoint phải trả về LAB01_OK."
+            "$PROGRAM_FILE"; then
+            echo "::error::Không tìm thấy endpoint /health trong Program.cs."
             exit 1
-          }
+          fi
+
+          if ! grep -Fq "LAB01_OK" "$PROGRAM_FILE"; then
+            echo "::error::Endpoint /health phải trả về LAB01_OK."
+            exit 1
+          fi
 
           echo "Đã tìm thấy endpoint /health."
 
+      # ------------------------------------------------------------
+      # 10. Khởi động và kiểm thử ứng dụng - 2 điểm
+      # ------------------------------------------------------------
       - name: Run and test application
         shell: bash
         run: |
           set -e
 
+          PROJECT_FILE="Lab01.Web/Lab01.Web.csproj"
+          APPLICATION_URL="http://127.0.0.1:5050"
+
           dotnet run \
-            --project "Lab01.Web/Lab01.Web.csproj" \
+            --project "$PROJECT_FILE" \
             --configuration Release \
             --no-build \
-            --urls "http://127.0.0.1:5050" \
+            --urls "$APPLICATION_URL" \
             > app.log 2>&1 &
 
           APP_PID=$!
@@ -165,14 +225,18 @@ jobs:
           APP_READY=false
 
           for i in {1..30}; do
-            if curl --fail --silent \
-              "http://127.0.0.1:5050/health" > /dev/null; then
+            if curl \
+              --fail \
+              --silent \
+              "$APPLICATION_URL/health" \
+              > /dev/null; then
               APP_READY=true
               break
             fi
 
             if ! kill -0 "$APP_PID" 2>/dev/null; then
               echo "::error::Ứng dụng đã dừng trước khi khởi động xong."
+              echo "----- Application log -----"
               cat app.log
               exit 1
             fi
@@ -182,43 +246,76 @@ jobs:
 
           if [ "$APP_READY" != "true" ]; then
             echo "::error::Ứng dụng không khởi động trong 30 giây."
+            echo "----- Application log -----"
             cat app.log
             exit 1
           fi
 
-          HEALTH_RESULT=$(curl --fail --silent \
-            "http://127.0.0.1:5050/health")
+          HEALTH_RESULT=$(curl \
+            --fail \
+            --silent \
+            "$APPLICATION_URL/health")
 
           if [ "$HEALTH_RESULT" != "LAB01_OK" ]; then
             echo "::error::Endpoint /health không trả về LAB01_OK."
+            echo "::error::Kết quả thực tế: $HEALTH_RESULT"
             exit 1
           fi
 
-          HOME_PAGE=$(curl --fail --silent \
-            "http://127.0.0.1:5050/")
+          HOME_PAGE=$(curl \
+            --fail \
+            --silent \
+            "$APPLICATION_URL/")
 
-          if ! printf '%s' "$HOME_PAGE" \
+          if ! printf "%s" "$HOME_PAGE" \
             | grep -Fq "ASP.NET Core"; then
             echo "::error::Trang chủ không hiển thị nội dung ASP.NET Core."
             exit 1
           fi
 
-          echo "Ứng dụng khởi động và hoạt động đúng."
+          echo "Ứng dụng đã khởi động thành công."
+          echo "Endpoint /health trả về đúng LAB01_OK."
+          echo "Trang chủ hoạt động bình thường."
 
-      - name: Autograding summary
+      # ------------------------------------------------------------
+      # 11. Tổng hợp kết quả
+      # ------------------------------------------------------------
+      - name: Create autograding summary
         if: success()
+        shell: bash
         run: |
+          PROJECT_FILE="Lab01.Web/Lab01.Web.csproj"
+
+          TARGET_FRAMEWORK=$(grep -Eo \
+            'net(8|9|10)\.0' \
+            "$PROJECT_FILE" | head -n 1)
+
           {
-            echo "## Kết quả chấm tự động"
+            echo "# Kết quả chấm tự động – Bài thực hành 01"
             echo ""
-            echo "✅ Đúng cấu trúc dự án"
-            echo "✅ Sử dụng .NET 8"
-            echo "✅ Biên dịch thành công"
-            echo "✅ Trang chủ có nội dung bắt buộc"
-            echo "✅ Đã cá nhân hóa thông tin"
-            echo "✅ Endpoint /health hoạt động"
+            echo "| Nội dung | Kết quả | Điểm |"
+            echo "|---|---:|---:|"
+            echo "| Cấu trúc dự án | Đạt | 1/1 |"
+            echo "| Target Framework | $TARGET_FRAMEWORK | 1/1 |"
+            echo "| Biên dịch dự án | Đạt | 2/2 |"
+            echo "| Nội dung trang chủ | Đạt | 2/2 |"
+            echo "| Cá nhân hóa thông tin | Đạt | 1/1 |"
+            echo "| Endpoint /health | Đạt | 2/2 |"
+            echo "| **Tổng điểm tự động** | | **9/9** |"
             echo ""
-            echo "**Điểm tự động: 9/9**"
-            echo ""
-            echo "Điểm lịch sử commit do giảng viên đánh giá."
+            echo "> Điểm lịch sử commit: giảng viên đánh giá riêng, tối đa 1 điểm."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # ------------------------------------------------------------
+      # 12. Hiển thị log khi kiểm tra thất bại
+      # ------------------------------------------------------------
+      - name: Display application log on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f "app.log" ]; then
+            echo "----- Application log -----"
+            cat app.log
+          else
+            echo "Ứng dụng chưa được khởi động hoặc chưa tạo app.log."
+          fi
