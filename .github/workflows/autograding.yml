@@ -14,6 +14,7 @@ permissions:
 jobs:
   autograding:
     name: Autograding
+    if: ${{ !endsWith(github.event.repository.name, '-template') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
