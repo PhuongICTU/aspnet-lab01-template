@@ -18,16 +18,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      # ---------------------------------------------------------
-      # 1. Tải mã nguồn
-      # ---------------------------------------------------------
-      - name: Checkout repository
+      - name: Checkout student repository
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # 2. Cài đặt các phiên bản .NET được phép sử dụng
-      # ---------------------------------------------------------
-      - name: Install supported .NET SDKs
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -35,48 +29,44 @@ jobs:
             9.0.x
             10.0.x
 
-      # ---------------------------------------------------------
-      # 3. Kiểm tra cấu trúc project: 1 điểm
-      # ---------------------------------------------------------
+      # 1 diem: tu dong tim project ASP.NET Core Web, khong bat buoc ten thu muc.
       - name: Check project structure
         id: check-structure
         uses: classroom-resources/autograding-command-grader@v1
         with:
           test-name: Check project structure
           setup-command: ''
-          command: test -f "Lab01.Web/Lab01.Web.csproj"
+          command: >-
+            bash -c 'PROJECT_FILE=$(grep -rl --include="*.csproj" "Microsoft.NET.Sdk.Web" . | head -n 1); test -n "$PROJECT_FILE"; echo "Found web project: $PROJECT_FILE"'
           timeout: 1
           max-score: 1
 
-      # ---------------------------------------------------------
-      # 4. Khôi phục thư viện: 2 điểm
-      # ---------------------------------------------------------
+      # 2 diem: tai va khoi phuc duoc cac goi phu thuoc.
       - name: Restore dependencies
         id: restore
         uses: classroom-resources/autograding-command-grader@v1
         with:
           test-name: Restore dependencies
           setup-command: ''
-          command: dotnet restore "Lab01.Web/Lab01.Web.csproj"
+          command: >-
+            bash -c 'PROJECT_FILE=$(grep -rl --include="*.csproj" "Microsoft.NET.Sdk.Web" . | head -n 1); test -n "$PROJECT_FILE"; dotnet restore "$PROJECT_FILE"'
           timeout: 5
           max-score: 2
 
-      # ---------------------------------------------------------
-      # 5. Biên dịch project: 3 điểm
-      # ---------------------------------------------------------
+      # 3 diem: ma nguon bien dich thanh cong.
       - name: Build application
         id: build
         uses: classroom-resources/autograding-command-grader@v1
         with:
           test-name: Build application
           setup-command: ''
-          command: dotnet build "Lab01.Web/Lab01.Web.csproj" --configuration Release --no-restore
+          command: >-
+            bash -c 'PROJECT_FILE=$(grep -rl --include="*.csproj" "Microsoft.NET.Sdk.Web" . | head -n 1); test -n "$PROJECT_FILE"; dotnet build "$PROJECT_FILE" --configuration Release'
           timeout: 5
           max-score: 3
 
-      # ---------------------------------------------------------
-      # 6. Khởi động và kiểm tra ứng dụng: 4 điểm
-      # ---------------------------------------------------------
+      # 4 diem: ung dung khoi dong va phan hoi HTTP.
+      # Khong dung launchSettings.json de tranh moi bai chay mot cong khac nhau.
       - name: Run and test application
         id: run-application
         uses: classroom-resources/autograding-command-grader@v1
@@ -85,53 +75,33 @@ jobs:
           setup-command: ''
           command: >-
             bash -c '
-              dotnet run
-              --project "Lab01.Web/Lab01.Web.csproj"
-              --configuration Release
-              --no-build
-              --no-launch-profile
-              --urls "http://127.0.0.1:5050"
-              > application.log 2>&1 &
-
+              PROJECT_FILE=$(grep -rl --include="*.csproj" "Microsoft.NET.Sdk.Web" . | head -n 1);
+              test -n "$PROJECT_FILE";
+              echo "Running web project: $PROJECT_FILE";
+              dotnet run --project "$PROJECT_FILE" --configuration Release --no-launch-profile --urls "http://127.0.0.1:5050" > application.log 2>&1 &
               APP_PID=$!;
-
-              cleanup() {
-                kill "$APP_PID" 2>/dev/null || true;
-              };
-
+              cleanup() { kill "$APP_PID" 2>/dev/null || true; };
               trap cleanup EXIT;
-
               for i in {1..30}; do
-                if curl
-                --silent
-                --show-error
-                "http://127.0.0.1:5050/"
-                > /dev/null; then
+                if curl --silent --show-error "http://127.0.0.1:5050/" > /dev/null; then
                   echo "Application started successfully.";
                   exit 0;
                 fi;
-
                 if ! kill -0 "$APP_PID" 2>/dev/null; then
                   echo "Application stopped before responding.";
-                  echo "----- Application log -----";
                   cat application.log;
                   exit 1;
                 fi;
-
                 sleep 1;
               done;
-
               echo "Application did not respond within 30 seconds.";
-              echo "----- Application log -----";
               cat application.log;
               exit 1
             '
           timeout: 2
           max-score: 4
 
-      # ---------------------------------------------------------
-      # 7. Tổng hợp và gửi điểm về GitHub Classroom
-      # ---------------------------------------------------------
+      # Bat buoc de day tong diem ve cot Score cua GitHub Classroom.
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         if: always()
